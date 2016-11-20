@@ -48,17 +48,33 @@ namespace RecursiveTemplate
         /// Replaces template fields in the specified template string, and
         /// updates its metadata, using resolved strings from the specified
         /// sourceCollection, which is itself progressively updated.
+        /// <param name="fieldName">
+        /// The name of the field being resolved
+        /// </param>
+        /// <param name="templateString">
+        /// The template string to resolve, including metadata
+        /// </param>
+        /// <param name="occurrenceChain">
+        /// The set of previously performed occurrences; attempts to add duplicate
+        /// entries will result in a recursive impasse
+        /// </param>
+        /// <param name="depth">
+        /// The recursive depth of the current call; attempts to reach a depth
+        /// exceeding the configured maximum level of recursion will result in an
+        /// impasse
+        /// </param>
         /// </summary>
         private ResolvedTemplateString Resolve(
             string fieldName,
             ResolvedTemplateString templateString, 
             Dictionary<string, ResolvedTemplateString> sourceCollection, 
-            HashSet<TemplateFieldOccurrence> occurrenceChain, int level = 0)
+            HashSet<TemplateFieldOccurrence> occurrenceChain, int depth = 0)
         {
-            if (level > _maximumLevelOfRecursion)
+            if (depth > _maximumLevelOfRecursion)
             {
                 templateString.Value = fieldName;
                 templateString.ReachedMaximumLevelOfRecursion = true;
+                templateString.RecursiveImpasseFieldNames.Add(fieldName);
 
                 return templateString;
             }
@@ -88,7 +104,7 @@ namespace RecursiveTemplate
 
                 if(sourceCollection.TryGetValue(field, out replacement))
                 {
-                    replacement = Resolve(field, replacement, sourceCollection, occurrenceChain, level + 1);
+                    replacement = Resolve(field, replacement, sourceCollection, occurrenceChain, depth + 1);
 
                     templateString.ReachedMaximumLevelOfRecursion = 
                         replacement.ReachedMaximumLevelOfRecursion;
